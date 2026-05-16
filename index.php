@@ -195,27 +195,34 @@ include 'partials/head.php';
 <section class="partners-section" id="partneri">
     <div class="partners-label">Premium Partneri &amp; Preporučena Oprema</div>
     <div class="partners-track">
-        <div class="partner-item" data-category="Skije">
+        <a class="partner-item" data-category="Skije"
+           href="https://www.elanskis.com/" target="_blank" rel="noopener noreferrer">
             <span class="partner-logo">ELAN<span class="logo-tag">®</span></span>
-        </div>
-        <div class="partner-item" data-category="Skije">
+        </a>
+        <a class="partner-item" data-category="Skije"
+           href="https://www.fischersports.com/" target="_blank" rel="noopener noreferrer">
             <span class="partner-logo">Fischer<span class="logo-tag">®</span></span>
-        </div>
-        <div class="partner-item" data-category="Skije &amp; Oprema">
+        </a>
+        <a class="partner-item" data-category="Skije &amp; Oprema"
+           href="https://www.atomic.com/" target="_blank" rel="noopener noreferrer">
             <span class="partner-logo">Atomic<span class="logo-tag">®</span></span>
-        </div>
-        <div class="partner-item" data-category="Garderoba">
+        </a>
+        <a class="partner-item" data-category="Garderoba"
+           href="https://www.salomon.com/" target="_blank" rel="noopener noreferrer">
             <span class="partner-logo">Salomon<span class="logo-tag">®</span></span>
-        </div>
-        <div class="partner-item" data-category="Garderoba">
+        </a>
+        <a class="partner-item" data-category="Garderoba"
+           href="https://www.bogner.com/" target="_blank" rel="noopener noreferrer">
             <span class="partner-logo">Bogner<span class="logo-tag">®</span></span>
-        </div>
-        <div class="partner-item" data-category="Skije">
+        </a>
+        <a class="partner-item" data-category="Skije"
+           href="https://www.voelkl.com/" target="_blank" rel="noopener noreferrer">
             <span class="partner-logo">Völkl<span class="logo-tag">®</span></span>
-        </div>
-        <div class="partner-item" data-category="Prevoz">
+        </a>
+        <a class="partner-item" data-category="Prevoz"
+           href="https://www.flixbus.com/" target="_blank" rel="noopener noreferrer">
             <span class="partner-logo">FlixBus<span class="logo-tag">®</span></span>
-        </div>
+        </a>
     </div>
 </section>
 
@@ -254,43 +261,14 @@ include 'partials/head.php';
                     <stop offset="0%"   stop-color="#0a1428" stop-opacity="1"/>
                     <stop offset="100%" stop-color="#04060d" stop-opacity="1"/>
                 </radialGradient>
+                <!-- Suptilna mreza tackica koja zamenjuje rogobatne polygone zemalja -->
+                <pattern id="dotGrid" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+                    <circle cx="1" cy="1" r="0.7" fill="rgba(255,255,255,0.06)"/>
+                </pattern>
             </defs>
 
             <rect width="800" height="500" fill="url(#bgGrad)" rx="20"/>
-
-            <!-- Simplified country shapes -->
-            <path d="M 70 280 L 72 230 L 105 205 L 155 198 L 175 218 L 178 255 L 165 285 L 130 298 L 85 292 Z"
-                  fill="rgba(255,255,255,0.028)" stroke="rgba(255,255,255,0.07)" stroke-width="0.8"/>
-            <path d="M 55 250 L 70 230 L 72 280 L 58 282 Z"
-                  fill="rgba(255,255,255,0.025)" stroke="rgba(255,255,255,0.06)" stroke-width="0.8"/>
-            <path d="M 155 198 L 205 175 L 265 178 L 280 200 L 285 230 L 270 262 L 240 280 L 200 285 L 175 270 L 165 245 L 165 218 Z"
-                  fill="rgba(255,255,255,0.032)" stroke="rgba(255,255,255,0.08)" stroke-width="0.8" id="map-france"/>
-            <path d="M 240 280 L 270 262 L 300 270 L 320 295 L 330 340 L 320 390 L 300 420 L 280 400 L 275 360 L 265 320 L 250 305 Z"
-                  fill="rgba(255,255,255,0.032)" stroke="rgba(255,255,255,0.08)" stroke-width="0.8" id="map-italy"/>
-            <path d="M 265 220 L 295 215 L 310 228 L 305 248 L 280 252 L 265 242 Z"
-                  fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.09)" stroke-width="0.8" id="map-swiss"/>
-            <path d="M 265 178 L 320 162 L 380 158 L 400 175 L 392 210 L 370 228 L 330 235 L 300 228 L 280 210 L 278 192 Z"
-                  fill="rgba(255,255,255,0.028)" stroke="rgba(255,255,255,0.07)" stroke-width="0.8" id="map-germany"/>
-            <path d="M 312 218 L 380 210 L 410 218 L 420 232 L 405 248 L 370 252 L 340 250 L 318 240 Z"
-                  fill="rgba(255,255,255,0.040)" stroke="rgba(255,255,255,0.09)" stroke-width="0.8" id="map-austria"/>
-            <path d="M 370 252 L 400 248 L 415 260 L 408 272 L 382 268 Z"
-                  fill="rgba(255,255,255,0.035)" stroke="rgba(255,255,255,0.08)" stroke-width="0.8"/>
-            <path d="M 395 262 L 430 255 L 450 270 L 460 295 L 450 330 L 430 345 L 415 330 L 410 305 L 408 282 Z"
-                  fill="rgba(255,255,255,0.028)" stroke="rgba(255,255,255,0.07)" stroke-width="0.8"/>
-            <path d="M 445 272 L 490 265 L 510 280 L 508 320 L 490 345 L 462 342 L 448 320 L 450 295 Z"
-                  fill="rgba(0, 229, 255, 0.06)" stroke="rgba(0,229,255,0.18)" stroke-width="1"/>
-            <path d="M 410 220 L 460 212 L 490 225 L 498 248 L 480 262 L 445 265 L 418 255 L 410 238 Z"
-                  fill="rgba(255,255,255,0.025)" stroke="rgba(255,255,255,0.07)" stroke-width="0.8"/>
-            <path d="M 320 162 L 390 150 L 430 158 L 445 172 L 440 198 L 405 200 L 370 198 L 335 192 Z"
-                  fill="rgba(255,255,255,0.022)" stroke="rgba(255,255,255,0.06)" stroke-width="0.8"/>
-            <path d="M 180 145 L 240 135 L 268 150 L 265 178 L 205 175 L 185 165 Z"
-                  fill="rgba(255,255,255,0.020)" stroke="rgba(255,255,255,0.05)" stroke-width="0.8"/>
-            <path d="M 50 450 L 800 450 L 800 500 L 50 500 Z"
-                  fill="rgba(255,255,255,0.010)" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
-
-            <text x="300" y="460" text-anchor="middle"
-                  font-family="'Cormorant Garamond', serif" font-size="11" font-style="italic"
-                  fill="rgba(255,255,255,0.14)" letter-spacing="2">Sredozemno more</text>
+            <rect width="800" height="500" fill="url(#dotGrid)" rx="20"/>
 
             <!-- Animovane linije Beograd → destinacije -->
             <path d="M 480 300 Q 380 200 230 245"

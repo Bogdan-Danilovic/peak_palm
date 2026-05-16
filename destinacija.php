@@ -177,10 +177,6 @@ include 'partials/head.php';
 ?>
 <body>
 
-<!-- Custom cursor -->
-<div class="cursor-dot" id="cursorDot"></div>
-<div class="cursor-ring" id="cursorRing"></div>
-
 <div class="fixed-bg"></div>
 
 <?php include 'partials/nav.php'; ?>
@@ -752,34 +748,6 @@ include 'partials/head.php';
      JAVASCRIPT
      ==================================================================== -->
 <script>
-/* ---- Custom Cursor ---- */
-const dot  = document.getElementById('cursorDot');
-const ring = document.getElementById('cursorRing');
-let ringX = 0, ringY = 0, dotX = 0, dotY = 0;
-let raf = null;
-
-document.addEventListener('mousemove', e => {
-    dotX = e.clientX;
-    dotY = e.clientY;
-    dot.style.left = dotX + 'px';
-    dot.style.top  = dotY + 'px';
-    if (!raf) raf = requestAnimationFrame(animateRing);
-});
-
-function animateRing() {
-    ringX += (dotX - ringX) * 0.14;
-    ringY += (dotY - ringY) * 0.14;
-    ring.style.left = ringX + 'px';
-    ring.style.top  = ringY + 'px';
-    raf = requestAnimationFrame(animateRing);
-}
-
-const hoverSelector = 'a, button, .slope-item, .faq-question, .hotel-card, .review-card, .transport-card, .day-btn, .segment-btn';
-document.querySelectorAll(hoverSelector).forEach(el => {
-    el.addEventListener('mouseenter', () => ring.classList.add('hovering'));
-    el.addEventListener('mouseleave', () => ring.classList.remove('hovering'));
-});
-
 /* ---- Nav mouse glow ---- */
 document.querySelectorAll('.nav-links a').forEach(link => {
     link.addEventListener('mousemove', e => {
