@@ -72,15 +72,44 @@ try {
 }
 
 /* ---------------------------------------------------------------
-   3. KONFIGURACIJA STRANICE (za partials/head.php i nav.php)
+   3. KONFIGURACIJA STRANICE — SABLON tekstova po sezoni.
+   Ovo je sustinski "univerzalni sablon": ista HTML struktura,
+   razliciti sadrzaji u zavisnosti od $current_season.
    --------------------------------------------------------------- */
-$page_title = 'Katalog Destinacija | Peak and Palm';
-$nav_links  = [
-    ['href' => 'index.php',     'label' => 'Katalog',       'active' => true],
-    ['href' => '#route-finder', 'label' => 'Planiraj rutu'],
-    ['href' => '#mapa',         'label' => 'Destinacije'],
-    ['href' => '#katalog',      'label' => 'Skijalista'],
+$content_po_sezoni = [
+    'zima' => [
+        'page_title'      => 'Katalog Ski Destinacija | Peak and Palm',
+        'hero_eyebrow'    => 'Premium Alpine Travel',
+        'hero_title_1'    => 'Gde se završava',
+        'hero_title_2'    => 'asfalt, tu počinje',
+        'hero_title_em'   => 'avantura',
+        'hero_subtitle'   => 'Direktno iz Beograda do najlepših ski centara Alpa. Organizacija, logistika i komfor — sve na jednom mestu.',
+        'cta_primary'     => 'Istraži katalog',
+        'cta_secondary'   => 'Planiranje rute →',
+        'catalog_eyebrow' => 'Explore the Slopes',
+        'catalog_title_1' => 'Katalog',
+        'catalog_title_2' => 'Ski Destinacija',
+        'catalog_intro'   => 'Izaberite destinaciju, pregledajte interaktivnu mapu staza i izračunajte troškove logistike iz Beograda.',
+        'show_ski_sekcije'=> true,   /* ticker o snegu, partneri ski-brendovi, evropska mapa */
+    ],
+    'leto' => [
+        'page_title'      => 'Katalog Letnjih Destinacija | Peak and Palm',
+        'hero_eyebrow'    => 'Premium Mediterranean Travel',
+        'hero_title_1'    => 'Gde se susreće',
+        'hero_title_2'    => 'nebo i more, tu počinje',
+        'hero_title_em'   => 'odmor',
+        'hero_subtitle'   => 'Direktno iz Beograda do najlepših plaža i ostrva Mediterana. Sunce, more i komfor — sve na jednom mestu.',
+        'cta_primary'     => 'Istraži destinacije',
+        'cta_secondary'   => 'Planiranje puta →',
+        'catalog_eyebrow' => 'Discover the Coast',
+        'catalog_title_1' => 'Katalog',
+        'catalog_title_2' => 'Letnjih Destinacija',
+        'catalog_intro'   => 'Izaberite destinaciju, otkrijte staze, plaže i atrakcije, planirajte savršen letnji predah.',
+        'show_ski_sekcije'=> false,  /* nema snega/skija/evropske ski mape u leto */
+    ],
 ];
+$c = $content_po_sezoni[$current_season];
+$page_title = $c['page_title'];
 
 include 'partials/head.php';
 ?>
@@ -110,24 +139,23 @@ include 'partials/head.php';
     <div class="vhero-overlay"></div>
 
     <div class="vhero-content">
-        <div class="vhero-eyebrow">Premium Alpine Travel</div>
+        <div class="vhero-eyebrow"><?php echo htmlspecialchars($c['hero_eyebrow']); ?></div>
         <h1 class="vhero-title">
-            Gde se završava<br>
-            asfalt, tu počinje <em>avantura</em>
+            <?php echo htmlspecialchars($c['hero_title_1']); ?><br>
+            <?php echo htmlspecialchars($c['hero_title_2']); ?> <em><?php echo htmlspecialchars($c['hero_title_em']); ?></em>
         </h1>
         <p class="vhero-subtitle">
-            Direktno iz Beograda do najlepših ski centara Alpa.
-            Organizacija, logistika i komfor — sve na jednom mestu.
+            <?php echo htmlspecialchars($c['hero_subtitle']); ?>
         </p>
         <div class="vhero-cta-group">
             <a href="#katalog" class="vhero-cta-primary">
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <circle cx="7" cy="7" r="6"/><polyline points="7,4 7,7 9,9"/>
                 </svg>
-                Istraži katalog
+                <?php echo htmlspecialchars($c['cta_primary']); ?>
             </a>
-            <a href="#route-finder" class="vhero-cta-secondary">
-                Planiranje rute →
+            <a href="#katalog" class="vhero-cta-secondary">
+                <?php echo htmlspecialchars($c['cta_secondary']); ?>
             </a>
         </div>
     </div>
@@ -140,8 +168,9 @@ include 'partials/head.php';
 </section>
 
 <!-- ============================================================
-     2. LIVE TICKER
+     2. LIVE TICKER  (samo ZIMA — info o snegu na planinama)
      ============================================================ -->
+<?php if ($c['show_ski_sekcije']): ?>
 <div class="ticker-section">
     <div class="ticker-inner">
         <div class="ticker-label">
@@ -160,10 +189,12 @@ include 'partials/head.php';
         </div>
     </div>
 </div>
+<?php endif; /* ticker zima only */ ?>
 
 <!-- ============================================================
-     3. QUICK ROUTE FINDER
+     3. QUICK ROUTE FINDER  (samo ZIMA — kalkulator distance + putarine)
      ============================================================ -->
+<?php if ($c['show_ski_sekcije']): ?>
 <section class="route-finder-section" id="route-finder">
     <div class="route-finder-wrap reveal">
         <div class="rf-header">
@@ -207,10 +238,12 @@ include 'partials/head.php';
         </div>
     </div>
 </section>
+<?php endif; /* route finder zima only */ ?>
 
 <!-- ============================================================
-     4. PARTNERS
+     4. PARTNERS  (samo ZIMA — ski brendovi)
      ============================================================ -->
+<?php if ($c['show_ski_sekcije']): ?>
 <section class="partners-section" id="partneri">
     <div class="partners-label">Premium Partneri &amp; Preporučena Oprema</div>
     <div class="partners-track">
@@ -244,10 +277,12 @@ include 'partials/head.php';
         </a>
     </div>
 </section>
+<?php endif; /* partners zima only */ ?>
 
 <!-- ============================================================
-     5. INTERAKTIVNA MAPA EVROPE
+     5. INTERAKTIVNA MAPA EVROPE  (samo ZIMA)
      ============================================================ -->
+<?php if ($c['show_ski_sekcije']): ?>
 <section class="europe-section" id="mapa">
     <div class="europe-header reveal">
         <span class="section-eyebrow">Logistika iz Beograda</span>
@@ -355,9 +390,10 @@ include 'partials/head.php';
         </svg>
     </div>
 </section>
+<?php endif; /* europe map zima only */ ?>
 
 <!-- ============================================================
-     6. TESTIMONIALS CAROUSEL
+     6. TESTIMONIALS CAROUSEL  (uvek se prikazuje — generic)
      ============================================================ -->
 <section class="testimonials-section" id="utisci">
     <div class="testimonials-header reveal">
@@ -420,10 +456,13 @@ include 'partials/head.php';
 <section class="catalog-section" id="katalog">
 
     <div class="catalog-header-new reveal">
-        <span class="section-eyebrow">Explore the Slopes</span>
-        <h2 class="section-heading">Katalog <span>Ski Destinacija</span></h2>
+        <span class="section-eyebrow"><?php echo htmlspecialchars($c['catalog_eyebrow']); ?></span>
+        <h2 class="section-heading">
+            <?php echo htmlspecialchars($c['catalog_title_1']); ?>
+            <span><?php echo htmlspecialchars($c['catalog_title_2']); ?></span>
+        </h2>
         <p class="catalog-intro">
-            Izaberite destinaciju, pregledajte interaktivnu mapu staza i izračunajte troškove logistike iz Beograda.
+            <?php echo htmlspecialchars($c['catalog_intro']); ?>
         </p>
         <div class="section-divider"></div>
     </div>
@@ -447,18 +486,33 @@ include 'partials/head.php';
                     ?>
                 </p>
                 <div class="dest-meta">
-                    <div class="meta-item">
-                        <span>Ukupno staza</span>
-                        <strong><?php echo (int)($d['ukupno_staza_km'] ?? 0); ?> km</strong>
-                    </div>
-                    <div class="meta-item">
-                        <span>Broj žičara</span>
-                        <strong><?php echo (int)($d['broj_zicara'] ?? 0); ?></strong>
-                    </div>
-                    <div class="meta-item">
-                        <span>Udaljenost</span>
-                        <strong><?php echo (int)$d['distanca_od_bg_km']; ?> km</strong>
-                    </div>
+                    <?php if ($current_season === 'zima'): ?>
+                        <div class="meta-item">
+                            <span>Ukupno staza</span>
+                            <strong><?php echo (int)($d['ukupno_staza_km'] ?? 0); ?> km</strong>
+                        </div>
+                        <div class="meta-item">
+                            <span>Broj žičara</span>
+                            <strong><?php echo (int)($d['broj_zicara'] ?? 0); ?></strong>
+                        </div>
+                        <div class="meta-item">
+                            <span>Udaljenost</span>
+                            <strong><?php echo (int)($d['distanca_od_bg_km'] ?? 0); ?> km</strong>
+                        </div>
+                    <?php else: /* LETO — drugaciji set podataka */ ?>
+                        <div class="meta-item">
+                            <span>Zemlja</span>
+                            <strong><?php echo htmlspecialchars($d['zemlja'] ?? '—'); ?></strong>
+                        </div>
+                        <div class="meta-item">
+                            <span>Region</span>
+                            <strong><?php echo htmlspecialchars($d['region'] ?? '—'); ?></strong>
+                        </div>
+                        <div class="meta-item">
+                            <span>Sezona</span>
+                            <strong>Maj — Oktobar</strong>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 <a href="destinacija.php?id=<?php echo (int)$d['id']; ?>&amp;sezona=<?php echo htmlspecialchars($current_season); ?>" class="btn-view">
                     Pogledaj Detaljnije
@@ -505,69 +559,66 @@ document.querySelectorAll('.reveal').forEach((el) => {
 });
 
 /* ================================================================
-   ROUTE FINDER — redirect na destinacija.php sa parametrima
+   ROUTE FINDER — postoji samo u ZIMA modu (guard ako elementi fale)
    ================================================================ */
 const rfDest   = document.getElementById('rf-dest');
 const rfOsobe  = document.getElementById('rf-osobe');
 const rfDani   = document.getElementById('rf-dani');
 const rfSubmit = document.getElementById('rf-submit');
 
-function routeFinderGo() {
-    if (!rfDest.value) {
-        rfDest.classList.add('is-error');
-        setTimeout(() => rfDest.classList.remove('is-error'), 1800);
-        return;
+if (rfDest && rfSubmit) {
+    function routeFinderGo() {
+        if (!rfDest.value) {
+            rfDest.classList.add('is-error');
+            setTimeout(() => rfDest.classList.remove('is-error'), 1800);
+            return;
+        }
+        const params = new URLSearchParams({
+            id:    rfDest.value,
+            osobe: rfOsobe.value || 2,
+            dani:  rfDani.value  || 7,
+        });
+        window.location.href = `destinacija.php?${params.toString()}#logistika`;
     }
-    const params = new URLSearchParams({
-        id:    rfDest.value,
-        osobe: rfOsobe.value || 2,
-        dani:  rfDani.value  || 7,
+    rfSubmit.addEventListener('click', routeFinderGo);
+    [rfDest, rfOsobe, rfDani].forEach(el => {
+        el.addEventListener('keydown', e => { if (e.key === 'Enter') routeFinderGo(); });
     });
-    window.location.href = `destinacija.php?${params.toString()}#logistika`;
 }
 
-rfSubmit.addEventListener('click', routeFinderGo);
-
-/* Enter taster u poljima */
-[rfDest, rfOsobe, rfDani].forEach(el => {
-    el.addEventListener('keydown', e => { if (e.key === 'Enter') routeFinderGo(); });
-});
-
 /* ================================================================
-   EUROPE MAP — tooltip
+   EUROPE MAP — tooltip (samo ZIMA — guard ako mapa ne postoji)
    ================================================================ */
 const tooltip      = document.getElementById('mapTooltip');
 const mapContainer = document.getElementById('europeMapContainer');
 
-document.querySelectorAll('.map-pin').forEach(pin => {
-    pin.style.cursor = 'pointer';
+if (tooltip && mapContainer) {
+    document.querySelectorAll('.map-pin').forEach(pin => {
+        pin.style.cursor = 'pointer';
 
-    pin.addEventListener('mouseenter', function() {
-        const { dest, country, km, ski } = this.dataset;
-        tooltip.innerHTML = `
-            <div class="tt-dest">${dest}</div>
-            <div class="tt-country">${country}</div>
-            <div class="tt-km"><strong>${km} km</strong> od Beograda</div>
-            <div class="tt-ski">${ski}</div>
-        `;
+        pin.addEventListener('mouseenter', function() {
+            const { dest, country, km, ski } = this.dataset;
+            tooltip.innerHTML = `
+                <div class="tt-dest">${dest}</div>
+                <div class="tt-country">${country}</div>
+                <div class="tt-km"><strong>${km} km</strong> od Beograda</div>
+                <div class="tt-ski">${ski}</div>
+            `;
+            const containerRect = mapContainer.getBoundingClientRect();
+            const pinRect       = this.getBoundingClientRect();
+            const pinCenterX    = pinRect.left + pinRect.width / 2 - containerRect.left;
+            const pinTopY       = pinRect.top  - containerRect.top;
+            tooltip.style.left = pinCenterX + 'px';
+            tooltip.style.top  = (pinTopY - tooltip.offsetHeight - 18) + 'px';
+            tooltip.classList.add('visible');
+        });
 
-        const containerRect = mapContainer.getBoundingClientRect();
-        const pinRect       = this.getBoundingClientRect();
-        const pinCenterX    = pinRect.left + pinRect.width / 2 - containerRect.left;
-        const pinTopY       = pinRect.top  - containerRect.top;
-
-        tooltip.style.left = pinCenterX + 'px';
-        tooltip.style.top  = (pinTopY - tooltip.offsetHeight - 18) + 'px';
-        tooltip.classList.add('visible');
+        pin.addEventListener('mouseleave', () => tooltip.classList.remove('visible'));
+        pin.addEventListener('click', () => {
+            document.getElementById('katalog').scrollIntoView({ behavior: 'smooth' });
+        });
     });
-
-    pin.addEventListener('mouseleave', () => tooltip.classList.remove('visible'));
-
-    /* Klik na pin -> scroll do kataloga */
-    pin.addEventListener('click', () => {
-        document.getElementById('katalog').scrollIntoView({ behavior: 'smooth' });
-    });
-});
+}
 
 /* ================================================================
    TESTIMONIALS CAROUSEL

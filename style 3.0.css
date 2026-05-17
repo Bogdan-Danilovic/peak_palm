@@ -56,11 +56,11 @@
 
 /* ==========================================================================
    THEME SWITCHER — Zima (default) vs Leto
-   Promenom data-season atributa na <html>, sve varijable se odjednom
-   prebacuju i citav UI menja boju, BEZ ijedne dodatne PHP/JS izmene
-   po komponenti. JS samo postavlja atribut na <html>.
+   PHP postavlja <html data-season="leto"> na osnovu ?sezona= u URL-u.
+   Sve CSS varijable se ovde prebacuju odjednom — ceo sajt menja boju
+   bez ijedne dodatne PHP/JS izmene po komponenti.
    ========================================================================== */
-[data-season="summer"] {
+[data-season="leto"] {
     /* Topla narandzasta umesto plave/cyan */
     --ice:           #f5a35a;
     --ice-rgb:       245, 163, 90;
@@ -191,10 +191,11 @@ nav {
     top: 0;
     width: 100%;
     padding: 24px 60px;
-    /* 3-column grid: levi (Zima Peak) | sredina (logo) | desni (Leto Palm) */
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    /* Tesno centriran cluster: Peak | Peak&Palm | Palm */
+    display: flex;
+    justify-content: center;
     align-items: center;
+    gap: 30px;
     z-index: 500;
     background: linear-gradient(
         to bottom,
@@ -1122,12 +1123,25 @@ nav.scrolled {
 .transport-card:hover { transform: translateY(-5px); border-color: rgba(var(--ice-rgb), 0.3); box-shadow: var(--shadow-hover); }
 .transport-accent { position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--border-subtle); transition: 0.3s; }
 .transport-card:hover .transport-accent { background: var(--ice); box-shadow: 0 0 15px var(--ice); }
-.transport-body { padding: 30px 25px; }
-.transport-icon-wrap { font-size: 2.5rem; margin-bottom: 15px; }
-.transport-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 5px; }
-.transport-subtitle { font-size: 0.8rem; color: var(--ice); margin-bottom: 20px; }
+/* Manje kartice (bez ikona i podnaslova) */
+.transport-body  { padding: 24px 22px; }
+.transport-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    margin-bottom: 18px;
+    color: var(--text-primary);
+}
 .transport-info-list { list-style: none; }
-.transport-info-list li { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 10px 0; border-bottom: 1px dashed rgba(255,255,255,0.05); }
+.transport-info-list li {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    padding: 9px 0;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+}
+.transport-info-list li:last-child { border-bottom: none; }
 .transport-info-list li span { color: var(--text-secondary); }
 .route-waypoints { margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px; font-size: 0.8rem; color: var(--text-secondary); }
 .wp { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
@@ -2416,88 +2430,49 @@ nav {
 }
 
 /* ==========================================================================
-   Season links (Zima Peak / Leto Palm) — premium nav dugmad
+   Season links — Peak / Palm pored logo-a
+   Belo default, boja teme + tanka linija ispod kad je aktivno.
    ========================================================================== */
 
 .season-link {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-    text-decoration: none;
-    padding: 10px 22px;
-    border: 1px solid var(--border-card);
-    border-radius: var(--r-pill);
-    background: rgba(255, 255, 255, 0.025);
-    color: var(--text-secondary);
-    transition:
-        color 0.4s var(--ease-out),
-        background 0.4s var(--ease-out),
-        border-color 0.4s var(--ease-out),
-        box-shadow 0.4s var(--ease-out),
-        transform 0.4s var(--ease-out);
-    position: relative;
-}
-
-.season-link.peak { justify-self: start; }
-.season-link.palm { justify-self: end; align-items: flex-end; }
-
-.season-link-eyebrow {
-    font-family: 'Outfit', sans-serif;
-    font-size: 0.6rem;
-    font-weight: 500;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    opacity: 0.7;
-    line-height: 1;
-}
-
-.season-link-name {
     font-family: 'Cormorant Garamond', serif;
-    font-size: 1.15rem;
+    font-size: 1.4rem;
     font-weight: 600;
     letter-spacing: 0.04em;
-    line-height: 1;
+    color: var(--text-primary);
+    text-decoration: none;
+    padding: 4px 4px 8px;
+    position: relative;
+    transition:
+        color 0.45s var(--ease-out),
+        transform 0.45s var(--ease-out);
 }
 
 .season-link:hover {
-    color: var(--text-primary);
-    border-color: rgba(var(--ice-rgb), 0.45);
+    color: var(--ice);
     transform: translateY(-1px);
-    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.4);
 }
 
 .season-link.active {
-    color: #03080f;
-    background: var(--ice);
-    border-color: var(--ice);
-    box-shadow:
-        0 6px 24px rgba(var(--ice-rgb), 0.4),
-        0 0 0 1px rgba(var(--ice-rgb), 0.6) inset;
+    color: var(--ice);
 }
 
-.season-link.active .season-link-eyebrow {
-    opacity: 0.7;
-    color: #03080f;
-}
-
-/* Suptilna oznaka aktivne sezone — mali "puls" pored aktivnog imena */
+/* Tanka linija ispod aktivnog dugmeta — suptilan glow */
 .season-link.active::after {
     content: '';
     position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #03080f;
-    opacity: 0.55;
-    animation: season-dot-pulse 2s ease-in-out infinite;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 22px;
+    height: 1.5px;
+    background: var(--ice);
+    border-radius: 2px;
+    box-shadow: 0 0 12px var(--ice), 0 0 4px var(--ice);
+    animation: season-line-glow 2.6s ease-in-out infinite;
 }
-.season-link.peak.active::after { right: 14px; }
-.season-link.palm.active::after { left:  14px; }
 
-@keyframes season-dot-pulse {
-    0%, 100% { transform: translateY(-50%) scale(1);   opacity: 0.55; }
-    50%      { transform: translateY(-50%) scale(1.4); opacity: 1; }
+@keyframes season-line-glow {
+    0%, 100% { width: 22px; opacity: 0.85; }
+    50%      { width: 30px; opacity: 1; }
 }
