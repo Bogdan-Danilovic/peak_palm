@@ -1,279 +1,241 @@
 -- ============================================================================
--- Peak & Palm — Migracija hardkodovanih podataka u MySQL bazu
+-- Peak & Palm — Maturski rad
+-- Univerzalna sema baze za katalog destinacija (skijanje / letovanje).
 -- ----------------------------------------------------------------------------
--- Pokrenuti u phpMyAdmin nad bazom `peak_palm`.
--- Skripta je IDEMPOTENTNA: DROP IF EXISTS pre svakog CREATE-a, pa moze
--- da se izvrti ponovo bez problema (sve seed-podatke ce ponovo ubaciti).
+-- Filozofija:
+--   * 7 fokusiranih tabela, sve povezane na `destinacije` preko stranog kljuca.
+--   * Dodavanje nove destinacije = INSERT redovi kroz phpMyAdmin.
+--   * Nije potreban admin panel — frontend automatski iscrtava sve podatke.
+--   * SVG staze + JSON polja = pun dinamicki sablon koji radi i za zimu i za leto.
 -- ============================================================================
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ----------------------------------------------------------------------------
--- 1. TICKER ITEMS — globalna obavestenja (jedina tabela bez veze na destinaciju)
+-- 1) GRANICNI PRELAZI  (globalna pomocna tabela)
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `ticker_items`;
-CREATE TABLE `ticker_items` (
-    `id`         INT NOT NULL AUTO_INCREMENT,
-    `tekst`      VARCHAR(255) NOT NULL,
-    `aktivan`    TINYINT(1)   NOT NULL DEFAULT 1,
-    `redosled`   SMALLINT     NOT NULL DEFAULT 0,
-    `kreiran_at` TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`),
-    KEY `idx_aktivan_redosled` (`aktivan`, `redosled`)
+DROP TABLE IF EXISTS `granicni_prelazi`;
+CREATE TABLE `granicni_prelazi` (
+    `id`                  INT AUTO_INCREMENT PRIMARY KEY,
+    `naziv`               VARCHAR(80)  NOT NULL,
+    `iz_drzave`           VARCHAR(40)  NOT NULL DEFAULT 'Srbija',
+    `u_drzavu`            VARCHAR(40)  NOT NULL,
+    `tipicno_cekanje_min` SMALLINT     NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 2. RECENZIJE — sa nullable destinacija_id
---    destinacija_id NULL + na_homepage=1  -> homepage carousel
---    destinacija_id NOT NULL              -> stranica skijalista
+-- 2) DESTINACIJE  (osnovna tabela — sve ostalo se na nju kaci)
+--    Napomena: ako tabela vec postoji iz starog projekta, ALTER ce samo
+--    dodati kolone koje fale. Postojeci podaci se NE diraju.
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `recenzije`;
-CREATE TABLE `recenzije` (
-    `id`             INT NOT NULL AUTO_INCREMENT,
-    `destinacija_id` INT DEFAULT NULL,
-    `ime`            VARCHAR(80)  NOT NULL,
-    `avatar`         VARCHAR(8)   DEFAULT NULL,
-    `lokacija`       VARCHAR(120) DEFAULT NULL,
-    `tekst`          TEXT         NOT NULL,
-    `ocena`          TINYINT      NOT NULL DEFAULT 5,
-    `datum_prikaza`  VARCHAR(40)  NOT NULL,
-    `tagovi`         JSON         DEFAULT NULL,
-    `na_homepage`    TINYINT(1)   NOT NULL DEFAULT 0,
-    `redosled`       SMALLINT     NOT NULL DEFAULT 0,
-    `kreiran_at`     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`),
-    KEY `idx_dest`     (`destinacija_id`),
-    KEY `idx_homepage` (`na_homepage`, `redosled`),
-    CONSTRAINT `fk_recenzije_destinacija`
-        FOREIGN KEY (`destinacija_id`) REFERENCES `destinacije` (`id`) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS `destinacije` (
+    `id`                 INT AUTO_INCREMENT PRIMARY KEY,
+    `naziv`              VARCHAR(120) NOT NULL,
+    `opis`               TEXT         DEFAULT NULL,
+    `zemlja`             VARCHAR(60)  DEFAULT NULL,
+    `region`             VARCHAR(80)  DEFAULT NULL,
+    `lat`                DECIMAL(10,6) DEFAULT NULL,
+    `lng`                DECIMAL(10,6) DEFAULT NULL,
+    `granicni_prelaz_id` INT          DEFAULT NULL,
+    CONSTRAINT `fk_dest_prelaz`
+        FOREIGN KEY (`granicni_prelaz_id`) REFERENCES `granicni_prelazi`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ----------------------------------------------------------------------------
--- 3. FAQ — destinacija_id NULL = globalni (vidi se na svakoj destinaciji)
--- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `faq`;
-CREATE TABLE `faq` (
-    `id`             INT NOT NULL AUTO_INCREMENT,
-    `destinacija_id` INT DEFAULT NULL,
-    `pitanje`        VARCHAR(255) NOT NULL,
-    `odgovor`        TEXT         NOT NULL,
-    `redosled`       SMALLINT     NOT NULL DEFAULT 0,
-    `aktivan`        TINYINT(1)   NOT NULL DEFAULT 1,
-    PRIMARY KEY (`id`),
-    KEY `idx_dest_redosled` (`destinacija_id`, `redosled`),
-    CONSTRAINT `fk_faq_destinacija`
-        FOREIGN KEY (`destinacija_id`) REFERENCES `destinacije` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- Ako tabela postoji od ranije, dodaj nove kolone (idempotentno):
+ALTER TABLE `destinacije`
+    ADD COLUMN IF NOT EXISTS `zemlja`             VARCHAR(60)   DEFAULT NULL AFTER `naziv`,
+    ADD COLUMN IF NOT EXISTS `region`             VARCHAR(80)   DEFAULT NULL AFTER `zemlja`,
+    ADD COLUMN IF NOT EXISTS `lat`                DECIMAL(10,6) DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS `lng`                DECIMAL(10,6) DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS `granicni_prelaz_id` INT           DEFAULT NULL;
 
 -- ----------------------------------------------------------------------------
--- 4. SKI PAS CENE — per destinacija
+-- 3) DESTINACIJE_SLIKE  (hero, mapa_staza, gallery)
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `ski_pas_cene`;
-CREATE TABLE `ski_pas_cene` (
-    `id`             INT NOT NULL AUTO_INCREMENT,
+DROP TABLE IF EXISTS `destinacije_slike`;
+CREATE TABLE `destinacije_slike` (
+    `id`             INT AUTO_INCREMENT PRIMARY KEY,
     `destinacija_id` INT NOT NULL,
-    `kategorija`     VARCHAR(40)  NOT NULL,
-    `cena_1dan`      DECIMAL(7,2) NOT NULL,
-    `cena_3dana`     DECIMAL(7,2) NOT NULL,
-    `cena_6dana`     DECIMAL(7,2) NOT NULL,
+    `tip`            ENUM('hero','mapa_staza','gallery') NOT NULL DEFAULT 'gallery',
+    `url`            VARCHAR(255) NOT NULL,
+    `alt`            VARCHAR(200) DEFAULT NULL,
     `redosled`       SMALLINT     NOT NULL DEFAULT 0,
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uniq_dest_kategorija` (`destinacija_id`, `kategorija`),
-    CONSTRAINT `fk_ski_pas_destinacija`
-        FOREIGN KEY (`destinacija_id`) REFERENCES `destinacije` (`id`) ON DELETE CASCADE
+    KEY `idx_dest_tip` (`destinacija_id`, `tip`),
+    CONSTRAINT `fk_slike_destinacija`
+        FOREIGN KEY (`destinacija_id`) REFERENCES `destinacije`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 5. VREME TRENUTNO — jedan red po destinaciji
+-- 4) STAZE_PUTANJE  (srce sablona!)
+--    `tip_klasa` se direktno koristi kao CSS klasa na <path>-u, npr. 'plava'.
+--    CSS sam reaguje (.staza.plava { stroke: ... }) i daje sjaj na hover.
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `vreme_trenutno`;
-CREATE TABLE `vreme_trenutno` (
+DROP TABLE IF EXISTS `staze_putanje`;
+CREATE TABLE `staze_putanje` (
+    `id`             INT AUTO_INCREMENT PRIMARY KEY,
     `destinacija_id` INT NOT NULL,
-    `temp_c`         TINYINT      NOT NULL,
-    `temp_osecaj_c`  TINYINT      DEFAULT NULL,
-    `sneg_dno_cm`    SMALLINT NOT NULL DEFAULT 0,
-    `sneg_vrh_cm`    SMALLINT NOT NULL DEFAULT 0,
-    `uslovi`         VARCHAR(60)  NOT NULL,
-    `ikona`          VARCHAR(10)  NOT NULL DEFAULT '☀️',
-    `vidljivost`     VARCHAR(60)  DEFAULT NULL,
-    `azurirano_at`   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
-                                  ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`destinacija_id`),
-    CONSTRAINT `fk_vreme_destinacija`
-        FOREIGN KEY (`destinacija_id`) REFERENCES `destinacije` (`id`) ON DELETE CASCADE
+    `tip_klasa`      VARCHAR(40)  NOT NULL,
+    `naziv`          VARCHAR(100) DEFAULT NULL,
+    `svg_d_putanja`  TEXT         NOT NULL,
+    `redosled`       SMALLINT     NOT NULL DEFAULT 0,
+    KEY `idx_dest_tip` (`destinacija_id`, `tip_klasa`),
+    CONSTRAINT `fk_putanje_destinacija`
+        FOREIGN KEY (`destinacija_id`) REFERENCES `destinacije`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 6. VREME PROGNOZA — 3-7 dana po destinaciji
+-- 5) TRANSPORT_OPCIJE
+--    `stavke_json` cuva niz {label, vrednost} parova — fleksibilan format
+--    koji isto radi i za bus, i za avion, i za auto, i za leto (npr. trajekt).
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `vreme_prognoza`;
-CREATE TABLE `vreme_prognoza` (
-    `id`             INT NOT NULL AUTO_INCREMENT,
+DROP TABLE IF EXISTS `transport_opcije`;
+CREATE TABLE `transport_opcije` (
+    `id`             INT AUTO_INCREMENT PRIMARY KEY,
     `destinacija_id` INT NOT NULL,
-    `dan_skraceno`   VARCHAR(8)   NOT NULL,
-    `temp_min`       TINYINT      NOT NULL,
-    `temp_max`       TINYINT      NOT NULL,
-    `stanje`         VARCHAR(40)  NOT NULL,
-    `ikona`          VARCHAR(10)  NOT NULL DEFAULT '☁️',
-    `redosled`       TINYINT      NOT NULL DEFAULT 0,
-    PRIMARY KEY (`id`),
-    KEY `idx_dest_redosled` (`destinacija_id`, `redosled`),
-    CONSTRAINT `fk_prognoza_destinacija`
-        FOREIGN KEY (`destinacija_id`) REFERENCES `destinacije` (`id`) ON DELETE CASCADE
+    `tip`            VARCHAR(40)  NOT NULL DEFAULT 'bus',
+    `naziv`          VARCHAR(100) NOT NULL,
+    `podnaslov`      VARCHAR(120) DEFAULT NULL,
+    `ikona`          VARCHAR(10)  DEFAULT '🚌',
+    `stavke_json`    JSON         DEFAULT NULL,
+    `redosled`       SMALLINT     NOT NULL DEFAULT 0,
+    KEY `idx_dest` (`destinacija_id`),
+    CONSTRAINT `fk_transport_destinacija`
+        FOREIGN KEY (`destinacija_id`) REFERENCES `destinacije`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- 7. STAZE STATUS — realtime stanje staza i zicara
+-- 6) OPREMA_PAKETI
+--    `includes_json` = niz stringova ("Skije", "Kaciga", ...).
+--    Za letovanje moze da bude "Ronilacka boca", "Snorkel", "Maska" itd.
 -- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `staze_status`;
-CREATE TABLE `staze_status` (
-    `destinacija_id`  INT NOT NULL,
-    `plave_otvorene`  SMALLINT NOT NULL DEFAULT 0,
-    `plave_ukupno`    SMALLINT NOT NULL DEFAULT 0,
-    `crvene_otvorene` SMALLINT NOT NULL DEFAULT 0,
-    `crvene_ukupno`   SMALLINT NOT NULL DEFAULT 0,
-    `crne_otvorene`   SMALLINT NOT NULL DEFAULT 0,
-    `crne_ukupno`     SMALLINT NOT NULL DEFAULT 0,
-    `zicara_aktivnih` SMALLINT NOT NULL DEFAULT 0,
-    `zicara_ukupno`   SMALLINT NOT NULL DEFAULT 0,
-    `azurirano_at`    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-                                ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`destinacija_id`),
-    CONSTRAINT `fk_staze_destinacija`
-        FOREIGN KEY (`destinacija_id`) REFERENCES `destinacije` (`id`) ON DELETE CASCADE
+DROP TABLE IF EXISTS `oprema_paketi`;
+CREATE TABLE `oprema_paketi` (
+    `id`             INT AUTO_INCREMENT PRIMARY KEY,
+    `destinacija_id` INT NOT NULL,
+    `naziv`          VARCHAR(100) NOT NULL,
+    `opis`           TEXT         DEFAULT NULL,
+    `cena_eur`       DECIMAL(7,2) NOT NULL,
+    `includes_json`  JSON         DEFAULT NULL,
+    `redosled`       SMALLINT     NOT NULL DEFAULT 0,
+    KEY `idx_dest` (`destinacija_id`),
+    CONSTRAINT `fk_oprema_destinacija`
+        FOREIGN KEY (`destinacija_id`) REFERENCES `destinacije`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- 7) SKOLA_PAKETI
+--    Univerzalno: skola skijanja, skola surfanja, skola ronjenja...
+-- ----------------------------------------------------------------------------
+DROP TABLE IF EXISTS `skola_paketi`;
+CREATE TABLE `skola_paketi` (
+    `id`             INT AUTO_INCREMENT PRIMARY KEY,
+    `destinacija_id` INT NOT NULL,
+    `naziv`          VARCHAR(100) NOT NULL,
+    `opis`           VARCHAR(255) DEFAULT NULL,
+    `cena_eur`       DECIMAL(7,2) NOT NULL,
+    `jedinica`       VARCHAR(20)  NOT NULL DEFAULT 'osobi',
+    `redosled`       SMALLINT     NOT NULL DEFAULT 0,
+    KEY `idx_dest` (`destinacija_id`),
+    CONSTRAINT `fk_skola_destinacija`
+        FOREIGN KEY (`destinacija_id`) REFERENCES `destinacije`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================================================
--- SEED PODACI
+-- (Opciono) Brisanje starih, sada nekoriscenih tabela. Otkomentarisi po zelji.
 -- ============================================================================
+-- DROP TABLE IF EXISTS `ticker_items`;
+-- DROP TABLE IF EXISTS `recenzije`;
+-- DROP TABLE IF EXISTS `faq`;
+-- DROP TABLE IF EXISTS `ski_pas_cene`;
+-- DROP TABLE IF EXISTS `vreme_trenutno`;
+-- DROP TABLE IF EXISTS `vreme_prognoza`;
+-- DROP TABLE IF EXISTS `staze_status`;
+-- DROP TABLE IF EXISTS `ski_info`;
+-- DROP TABLE IF EXISTS `smestaj`;
 
--- ----------------------------------------------------------------------------
--- 1. Ticker items (globalno)
--- ----------------------------------------------------------------------------
-INSERT INTO `ticker_items` (`tekst`, `redosled`) VALUES
-('❄️ Les Orres: 120 cm snega na vrhu · Prajder: odličan',                 10),
-('🚗 Batrovci (SRB/HRV): Zadržavanje ~30 min',                            20),
-('⛷️ Chamonix-Mont-Blanc: Sve žičare u pogonu · Vidljivost odlična',      30),
-('⚠️ Simplon prevoj (CH): Obavezni lanci ili zimske gume',                40),
-('❄️ Val Thorens: 210 cm snega · Sezona traje do kraja aprila',           50),
-('🚗 Horgoš (SRB/HUN): Bez zadržavanja',                                  60),
-('🌤️ Innsbruck: −6°C · Sunčano · Sve staze otvorene',                    70),
-('⚠️ Brenner autoput (AT): Zimska oprema obavezna iznad 700 m',           80),
-('❄️ Cortina d''Ampezzo: 85 cm sveže snežne podloge',                     90),
-('🚗 Šid (SRB/HRV): Zadržavanje ~15 min',                                100),
-('⛷️ Sella Ronda (IT): 40 km runde · Perfektni uslovi',                  110),
-('❄️ Zermatt: 300 cm snega na Matterhornskom platou',                    120);
-
--- ----------------------------------------------------------------------------
--- 2. Recenzije za HOMEPAGE (destinacija_id NULL, na_homepage = 1)
--- ----------------------------------------------------------------------------
-INSERT INTO `recenzije`
-    (`destinacija_id`, `ime`, `avatar`, `lokacija`, `tekst`, `ocena`, `datum_prikaza`, `na_homepage`, `redosled`) VALUES
-(NULL, 'Marija T.',   'MT', 'Les Orres, Francuska',
- 'Neverovatno iskustvo! Staze su savršeno pripremljene, sneg prašinast celu nedelju. Organizacija Peak & Palm bila je besprekorna od prvog do poslednjeg dana.',
- 5, 'Januar 2025.', 1, 10),
-(NULL, 'Stefan K.',   'SK', 'Innsbruck, Austrija',
- 'Treće godišnje putovanje sa ovom agencijom. Smeštaj tačno prema opisu, transfer sa aerodroma brz i bez čekanja. Jednom kad probate, ne idete drugde.',
- 5, 'Februar 2025.', 1, 20),
-(NULL, 'Ana & Bojan', 'AB', 'Cortina d''Ampezzo, Italija',
- 'Odlično za porodice s decom. Ski škola za početnike bila je strpljiva i profesionalna. Noćni život iznad svih očekivanja — pravo iznenađenje!',
- 5, 'Decembar 2024.', 1, 30),
-(NULL, 'Nikola P.',   'NP', 'Zermatt, Švajcarska',
- 'Sve je bilo savršeno isplanirano. Od polaska iz Beograda do povratka — nula stresa. Kalkulator na sajtu je bio tačan do poslednjeg evra. Hvala ekipi!',
- 5, 'Januar 2025.', 1, 40);
-
--- ----------------------------------------------------------------------------
--- 3. Recenzije za SVAKU DESTINACIJU (per-destination, isti seed za sve)
---    Koristi se INSERT ... SELECT FROM destinacije da se automatski kreiraju
---    redovi za sve postojeće destinacije.
--- ----------------------------------------------------------------------------
-INSERT INTO `recenzije` (`destinacija_id`, `ime`, `tekst`, `ocena`, `datum_prikaza`, `tagovi`, `redosled`)
-SELECT id, 'Marija T.',
-       'Neverovatno iskustvo! Staze su savršeno pripremljene, sneg je bio prašinast celu nedelju. Organizacija Peak & Palm bila je besprekorna od prvog do poslednjeg dana.',
-       5, 'Januar 2025.',
-       JSON_ARRAY('Staze ★★★★★', 'Organizacija ★★★★★'),
-       10
-FROM `destinacije`;
-
-INSERT INTO `recenzije` (`destinacija_id`, `ime`, `tekst`, `ocena`, `datum_prikaza`, `tagovi`, `redosled`)
-SELECT id, 'Stefan K.',
-       'Treće godišnje putovanje sa ovom agencijom. Smeštaj tačno prema opisu, transfer sa aerodroma bio brz i bez čekanja. Preporučujem svakome.',
-       5, 'Februar 2025.',
-       JSON_ARRAY('Smeštaj ★★★★☆', 'Transfer ★★★★★'),
-       20
-FROM `destinacije`;
-
-INSERT INTO `recenzije` (`destinacija_id`, `ime`, `tekst`, `ocena`, `datum_prikaza`, `tagovi`, `redosled`)
-SELECT id, 'Ana & Bojan',
-       'Odlično za porodice s decom. Ski škola za početnike bila je strpljiva i profesionalna. Noćni život iznad svih očekivanja — pravo iznenađenje!',
-       4, 'Decembar 2024.',
-       JSON_ARRAY('Porodično ★★★★★', 'Noćni život ★★★★☆'),
-       30
-FROM `destinacije`;
-
--- ----------------------------------------------------------------------------
--- 4. FAQ — globalna pitanja (destinacija_id = NULL)
--- ----------------------------------------------------------------------------
-INSERT INTO `faq` (`destinacija_id`, `pitanje`, `odgovor`, `redosled`) VALUES
-(NULL,
- 'Da li je ski pas uključen u cenu aranžmana?',
- 'Ski pas nije automatski uključen u smeštajni aranžman — to nam omogućava da svaki paket prilagodimo vašim potrebama. Možete ga dokupiti kroz naš kalkulator na ovoj stranici, ili nas kontaktirati za paket deal (smeštaj + pas) koji je često povoljniji od pojedinačne kupovine.',
- 10),
-(NULL,
- 'Kakvo zdravstveno osiguranje je potrebno za ski destinacije?',
- 'Strogo preporučujemo putno osiguranje koje eksplicitno pokriva "zimske sportove i aktivnosti na snegu". Standardne turistički polise često ne pokrivaju skijaške povrede. Imamo dogovor sa partnerskim osiguravačem koji nudi specijalnu skijašku polisu od samo €8/dan po osobi — pitajte naše agente za detalje.',
- 20),
-(NULL,
- 'Šta se dešava sa ski pasom ako se planina zatvori zbog nevremena?',
- 'Svaki skijaški centar iz našeg kataloga ima jasnu kompenzacionu politiku: za zatvaranje duže od 4 uzastopna sata vrši se proporcionalna nadoknada — ili produžetak pasa bez naknade, ili bon za narednu sezonu. Peak & Palm aktivno zastupa vaše interese u takvim situacijama.',
- 30),
-(NULL,
- 'Kako rezervisati ski školu ili rentiranje opreme?',
- 'Rezervacija se vrši minimum 48h pre željenog termina. Popunite kontakt obrazac na kraju stranice ili nas direktno kontaktirajte. Za grupe od 6 i više osoba odobravamo 15% popusta na kompletan paket opreme.',
- 40);
-
--- ----------------------------------------------------------------------------
--- 5. Ski pas cene — per destinacija (isti seed za sve)
--- ----------------------------------------------------------------------------
-INSERT INTO `ski_pas_cene` (`destinacija_id`, `kategorija`, `cena_1dan`, `cena_3dana`, `cena_6dana`, `redosled`)
-SELECT id, 'Odrasli',  42, 115, 195, 10 FROM `destinacije`
-UNION ALL
-SELECT id, 'Studenti', 35,  95, 162, 20 FROM `destinacije`
-UNION ALL
-SELECT id, 'Deca',     25,  68, 112, 30 FROM `destinacije`
-UNION ALL
-SELECT id, 'Senior',   32,  88, 148, 40 FROM `destinacije`;
-
--- ----------------------------------------------------------------------------
--- 6. Vreme trenutno — per destinacija (isti seed za sve)
--- ----------------------------------------------------------------------------
-INSERT INTO `vreme_trenutno`
-    (`destinacija_id`, `temp_c`, `temp_osecaj_c`, `sneg_dno_cm`, `sneg_vrh_cm`, `uslovi`, `ikona`, `vidljivost`)
-SELECT id, -3, -8, 45, 185, 'Sunčano', '☀️', 'Odlična (>10 km)'
-FROM `destinacije`;
-
--- ----------------------------------------------------------------------------
--- 7. Vreme prognoza — 3 dana per destinacija
--- ----------------------------------------------------------------------------
-INSERT INTO `vreme_prognoza` (`destinacija_id`, `dan_skraceno`, `temp_min`, `temp_max`, `stanje`, `ikona`, `redosled`)
-SELECT id, 'PON',  -8, -4, 'Oblačno', '☁️', 1 FROM `destinacije`
-UNION ALL
-SELECT id, 'UTO', -12, -7, 'Sneg',    '❄️', 2 FROM `destinacije`
-UNION ALL
-SELECT id, 'SRE',  -5, -1, 'Sunčano', '🌤️', 3 FROM `destinacije`;
-
--- ----------------------------------------------------------------------------
--- 8. Staze status — per destinacija
--- ----------------------------------------------------------------------------
-INSERT INTO `staze_status`
-    (`destinacija_id`, `plave_otvorene`, `plave_ukupno`, `crvene_otvorene`, `crvene_ukupno`,
-     `crne_otvorene`, `crne_ukupno`, `zicara_aktivnih`, `zicara_ukupno`)
-SELECT id, 12, 15, 8, 10, 2, 4, 8, 10
-FROM `destinacije`;
 
 -- ============================================================================
--- KRAJ MIGRACIJE
+-- SEED PODACI — primer destinacije "Les Orres" sa id = 1
+-- ============================================================================
+
+-- Granicni prelazi
+INSERT INTO `granicni_prelazi` (`naziv`, `iz_drzave`, `u_drzavu`, `tipicno_cekanje_min`) VALUES
+('Horgoš',     'Srbija', 'Mađarska',  30),
+('Batrovci',   'Srbija', 'Hrvatska',  25),
+('Šid',        'Srbija', 'Hrvatska',  15),
+('Vrška Čuka', 'Srbija', 'Bugarska',  20);
+
+-- Ako destinacija id=1 ne postoji, dodaj je. Inace dopuni nove kolone.
+INSERT INTO `destinacije` (`id`, `naziv`, `opis`, `zemlja`, `region`, `lat`, `lng`, `granicni_prelaz_id`)
+VALUES (1, 'Les Orres',
+        'Skrivena perla francuskih Alpa — staze pod stalnim suncem, kompaktno selo i savršena dnevna preglednost.',
+        'Francuska', 'Francuske Alpe', 44.4553, 6.5372, 1)
+ON DUPLICATE KEY UPDATE
+    `zemlja` = COALESCE(`destinacije`.`zemlja`, VALUES(`zemlja`)),
+    `region` = COALESCE(`destinacije`.`region`, VALUES(`region`)),
+    `lat`    = COALESCE(`destinacije`.`lat`,    VALUES(`lat`)),
+    `lng`    = COALESCE(`destinacije`.`lng`,    VALUES(`lng`)),
+    `granicni_prelaz_id` = COALESCE(`destinacije`.`granicni_prelaz_id`, VALUES(`granicni_prelaz_id`));
+
+-- Slika mape staza (preko koje se crtaju SVG putanje)
+INSERT INTO `destinacije_slike` (`destinacija_id`, `tip`, `url`, `alt`, `redosled`) VALUES
+(1, 'mapa_staza', 'Slike/les_orres_mapa.jpg', 'Mapa staza Les Orres', 1);
+
+-- SVG putanje staza
+-- `tip_klasa` ide direktno u HTML kao CSS klasa. CSS prepoznaje i boji.
+INSERT INTO `staze_putanje` (`destinacija_id`, `tip_klasa`, `naziv`, `svg_d_putanja`, `redosled`) VALUES
+(1, 'plava',  'Plava staza — La Cascade',     'M 200 150 Q 300 220 400 300', 1),
+(1, 'crvena', 'Crvena staza — Rouge Mélèzes', 'M306.5 123.5C295.3 123.9 292.167 118.667 292 116C295.5 110.5 294.5 111 289.5 103.5C297.1 100.7 303.5 97 305.5 90.5C330.3 92.5 330 90.5 330 84C340.5 74.5 341 74.5 333.5 68.5C335.9 60.1 327.833 58 324 58C319.5 58 317.403 63.6563 312 66.5C302.5 71.5 299.5 74 290.5 76C289.5 79 281.6 84.2 276 85C274 86.6667 268 92.5 268.5 101C265.5 104.5 262 104.7 256 107.5', 2),
+(1, 'crna',   'Crna staza — Pylône',          'M 320 80 L 310 180 L 290 290', 3);
+
+-- Transport opcije (3 razlicita tipa, isti format)
+INSERT INTO `transport_opcije` (`destinacija_id`, `tip`, `naziv`, `podnaslov`, `ikona`, `stavke_json`, `redosled`) VALUES
+(1, 'bus', 'Agencijski Autobus', 'Direktna linija', '🚌',
+    JSON_ARRAY(
+        JSON_OBJECT('label', 'Polazak',      'vrednost', 'Sava Centar, 22:00h'),
+        JSON_OBJECT('label', 'Trajanje',     'vrednost', '~20h vožnje'),
+        JSON_OBJECT('label', 'Povratak',     'vrednost', 'Nedeljom, 14:00h'),
+        JSON_OBJECT('label', 'Prtljag',      'vrednost', 'Kofer + ski torba'),
+        JSON_OBJECT('label', 'Cena prevoza', 'vrednost', '€95 / osobi')
+    ), 10),
+(1, 'avion', 'Avion + Transfer', 'Najbrža opcija', '✈️',
+    JSON_ARRAY(
+        JSON_OBJECT('label', 'Aerodrom',           'vrednost', 'BEG → Lyon / Marseille'),
+        JSON_OBJECT('label', 'Let',                'vrednost', '~2h 30min'),
+        JSON_OBJECT('label', 'Transfer',           'vrednost', 'Aerodrom → Hotel'),
+        JSON_OBJECT('label', 'Trajanje transfera', 'vrednost', '~3h'),
+        JSON_OBJECT('label', 'Šatl cena',          'vrednost', '€55 / osobi')
+    ), 20),
+(1, 'auto', 'Sopstveni Auto', '1580 km od Beograda', '🚗',
+    JSON_ARRAY(
+        JSON_OBJECT('label', 'Putarina',        'vrednost', '€110 povratno'),
+        JSON_OBJECT('label', 'Zimska oprema',   'vrednost', 'Obavezna'),
+        JSON_OBJECT('label', 'Granični prelaz', 'vrednost', 'Horgoš')
+    ), 30);
+
+-- Oprema paketi
+INSERT INTO `oprema_paketi` (`destinacija_id`, `naziv`, `opis`, `cena_eur`, `includes_json`, `redosled`) VALUES
+(1, 'Starter Komplet',
+    'Idealno za početnike i rekreativce. Proverena oprema renomirane klase.',
+    22,
+    JSON_ARRAY('Skije (all-mountain, početni nivo)', 'Pancerice (toplinski podstavljene)', 'Štapovi + kaiš za zapešće', 'Kaciga (EN 1077 certifikat)'),
+    10),
+(1, 'Expert Performance',
+    'Napredni modeli skija za iskusne skijaše koji traže preciznost i kontrolu na svakom terenu.',
+    38,
+    JSON_ARRAY('Race/Freeride skije (napredni modeli)', 'Pancerice (race-fit, carbon vložak)', 'Štapovi od karbona', 'Kaciga + zaštitne naočare', 'Zaštitni šorts i back protektor'),
+    20);
+
+-- Skola paketi
+INSERT INTO `skola_paketi` (`destinacija_id`, `naziv`, `opis`, `cena_eur`, `jedinica`, `redosled`) VALUES
+(1, 'Grupni čas (do 6 osoba)', '2h · Svi nivoi · Srpski / Engleski', 18, 'osobi', 10),
+(1, 'Individualni čas',        '2h · Personalizovani program',       65, 'čas',   20),
+(1, '5-dnevni grupni kurs',    '2h dnevno · Sve uzraste · Sertifikat', 72, 'osobi', 30),
+(1, 'Snowboard starter',       '3h · Početnici · Oprema uključena',    48, 'osobi', 40);
+
+-- ============================================================================
+-- KRAJ — pokreni u phpMyAdmin nad bazom `peak_palm`
 -- ============================================================================
