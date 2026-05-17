@@ -165,15 +165,15 @@ $skola = fetchByDest($pdo,
 
 /* ============================================================
    8. PARAMETRI ZA partials/head.php i partials/nav.php
-   ============================================================ */
+   ============================================================
+   Sezona ide prvo iz baze (sama destinacija zna kojoj sezoni pripada),
+   pa preko URL-a, pa default. Tako da otvaranje letnje destinacije
+   automatski daje narandzastu temu, bez obzira kako je linkovan. */
+$current_season = !empty($dest['sezona'])
+    ? $dest['sezona']
+    : get_season();
+
 $page_title = htmlspecialchars($dest['naziv']) . ' | Peak and Palm';
-$nav_links  = [
-    ['href' => 'index.php', 'label' => '← Katalog'],
-    ['href' => '#mapa',     'label' => 'Mapa staza'],
-    ['href' => '#prevoz',   'label' => 'Prevoz'],
-    ['href' => '#paketi',   'label' => 'Paketi'],
-    ['href' => '#galerija', 'label' => 'Galerija'],
-];
 
 include 'partials/head.php';
 ?>

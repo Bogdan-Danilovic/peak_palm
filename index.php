@@ -2,17 +2,36 @@
 require_once 'db.php';
 
 /* ---------------------------------------------------------------
-   1. PODACI IZ BAZE
+   1. SEZONA — citamo iz URL parametra ?sezona=zima|leto.
+   Sve dalje upite i CSS temu vodi ova jedna promenljiva.
+   --------------------------------------------------------------- */
+$current_season = get_season();
+
+/* ---------------------------------------------------------------
+   2. PODACI IZ BAZE — destinacije filtrirane po sezoni.
+   LEFT JOIN sa ski_info da i dalje radi za zimske kartice
+   (kolone su NULL za destinacije bez ski_info reda — npr. letnje).
    --------------------------------------------------------------- */
 try {
-    $stmt = $pdo->query("
+    $stmt = $pdo->prepare("
         SELECT d.*, s.ukupno_staza_km, s.broj_zicara
         FROM destinacije d
         LEFT JOIN ski_info s ON d.id = s.destinacija_id
+        WHERE d.sezona = ?
+        ORDER BY d.id
     ");
+    $stmt->execute([$current_season]);
     $destinacije = $stmt->fetchAll();
 } catch (PDOException $e) {
-    die("Greska: " . $e->getMessage());
+    /* Ako kolona `sezona` jos ne postoji (stara baza), fallback bez filtera */
+    try {
+        $stmt = $pdo->query("SELECT d.*, s.ukupno_staza_km, s.broj_zicara
+                             FROM destinacije d
+                             LEFT JOIN ski_info s ON d.id = s.destinacija_id");
+        $destinacije = $stmt->fetchAll();
+    } catch (PDOException $e2) {
+        die("Greska: " . $e2->getMessage());
+    }
 }
 
 /* ---------------------------------------------------------------
@@ -441,7 +460,7 @@ include 'partials/head.php';
                         <strong><?php echo (int)$d['distanca_od_bg_km']; ?> km</strong>
                     </div>
                 </div>
-                <a href="destinacija.php?id=<?php echo (int)$d['id']; ?>" class="btn-view">
+                <a href="destinacija.php?id=<?php echo (int)$d['id']; ?>&amp;sezona=<?php echo htmlspecialchars($current_season); ?>" class="btn-view">
                     Pogledaj Detaljnije
                 </a>
             </div>

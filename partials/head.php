@@ -3,30 +3,19 @@
  * partials/head.php
  * Zajednicki <head> blok za sve stranice.
  *
- * Stranica pre `include` mora postaviti promenljivu $page_title.
- * Opciono moze postaviti $page_extra_head za stranicno-specifican <style> ili <meta>.
+ * Stranica pre `include` mora postaviti:
+ *   $page_title       — naslov stranice
+ *   $current_season   — 'zima' ili 'leto' (uobicajeno: $current_season = get_season())
  */
+$__season = $current_season ?? 'zima';
 ?>
 <!DOCTYPE html>
-<html lang="sr">
+<html lang="sr" data-season="<?php echo htmlspecialchars($__season); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#04060d">
     <title><?php echo htmlspecialchars($page_title ?? 'Peak & Palm'); ?></title>
-
-    <!-- Pre-paint script: postavi sezonu na <html> PRE nego sto se CSS primeni,
-         da nema "blica" iz zime u leto pri ucitavanju stranice. -->
-    <script>
-    (function(){
-        try {
-            var s = localStorage.getItem('peak_palm_season') || 'winter';
-            document.documentElement.setAttribute('data-season', s);
-        } catch(e) {
-            document.documentElement.setAttribute('data-season', 'winter');
-        }
-    })();
-    </script>
 
     <!-- Preconnect ubrzava Google Fonts za 100-300ms -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

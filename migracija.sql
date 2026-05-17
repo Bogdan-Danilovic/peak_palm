@@ -35,9 +35,11 @@ CREATE TABLE IF NOT EXISTS `destinacije` (
     `opis`               TEXT         DEFAULT NULL,
     `zemlja`             VARCHAR(60)  DEFAULT NULL,
     `region`             VARCHAR(80)  DEFAULT NULL,
+    `sezona`             ENUM('zima','leto') NOT NULL DEFAULT 'zima',
     `lat`                DECIMAL(10,6) DEFAULT NULL,
     `lng`                DECIMAL(10,6) DEFAULT NULL,
     `granicni_prelaz_id` INT          DEFAULT NULL,
+    KEY `idx_sezona` (`sezona`),
     CONSTRAINT `fk_dest_prelaz`
         FOREIGN KEY (`granicni_prelaz_id`) REFERENCES `granicni_prelazi`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -46,6 +48,7 @@ CREATE TABLE IF NOT EXISTS `destinacije` (
 ALTER TABLE `destinacije`
     ADD COLUMN IF NOT EXISTS `zemlja`             VARCHAR(60)   DEFAULT NULL AFTER `naziv`,
     ADD COLUMN IF NOT EXISTS `region`             VARCHAR(80)   DEFAULT NULL AFTER `zemlja`,
+    ADD COLUMN IF NOT EXISTS `sezona`             ENUM('zima','leto') NOT NULL DEFAULT 'zima',
     ADD COLUMN IF NOT EXISTS `lat`                DECIMAL(10,6) DEFAULT NULL,
     ADD COLUMN IF NOT EXISTS `lng`                DECIMAL(10,6) DEFAULT NULL,
     ADD COLUMN IF NOT EXISTS `granicni_prelaz_id` INT           DEFAULT NULL;
@@ -170,16 +173,28 @@ INSERT INTO `granicni_prelazi` (`naziv`, `iz_drzave`, `u_drzavu`, `tipicno_cekan
 ('Vrška Čuka', 'Srbija', 'Bugarska',  20);
 
 -- Ako destinacija id=1 ne postoji, dodaj je. Inace dopuni nove kolone.
-INSERT INTO `destinacije` (`id`, `naziv`, `opis`, `zemlja`, `region`, `lat`, `lng`, `granicni_prelaz_id`)
+INSERT INTO `destinacije` (`id`, `naziv`, `opis`, `zemlja`, `region`, `sezona`, `lat`, `lng`, `granicni_prelaz_id`)
 VALUES (1, 'Les Orres',
         'Skrivena perla francuskih Alpa — staze pod stalnim suncem, kompaktno selo i savršena dnevna preglednost.',
-        'Francuska', 'Francuske Alpe', 44.4553, 6.5372, 1)
+        'Francuska', 'Francuske Alpe', 'zima', 44.4553, 6.5372, 1)
 ON DUPLICATE KEY UPDATE
     `zemlja` = COALESCE(`destinacije`.`zemlja`, VALUES(`zemlja`)),
     `region` = COALESCE(`destinacije`.`region`, VALUES(`region`)),
+    `sezona` = VALUES(`sezona`),
     `lat`    = COALESCE(`destinacije`.`lat`,    VALUES(`lat`)),
     `lng`    = COALESCE(`destinacije`.`lng`,    VALUES(`lng`)),
     `granicni_prelaz_id` = COALESCE(`destinacije`.`granicni_prelaz_id`, VALUES(`granicni_prelaz_id`));
+
+-- Demo letnja destinacija — Krit, Grcka
+INSERT INTO `destinacije` (`id`, `naziv`, `opis`, `zemlja`, `region`, `sezona`, `lat`, `lng`)
+VALUES (2, 'Krit',
+        'Najveće grčko ostrvo — kristalno plave plaže, planinski zaledja Lefka Ori i pet hiljada godina Minojske civilizacije na svakom koraku.',
+        'Grčka', 'Egejsko more', 'leto', 35.2401, 24.8093)
+ON DUPLICATE KEY UPDATE
+    `opis`   = VALUES(`opis`),
+    `sezona` = VALUES(`sezona`),
+    `lat`    = VALUES(`lat`),
+    `lng`    = VALUES(`lng`);
 
 -- Slika mape staza (preko koje se crtaju SVG putanje)
 INSERT INTO `destinacije_slike` (`destinacija_id`, `tip`, `url`, `alt`, `redosled`) VALUES
@@ -238,6 +253,67 @@ INSERT INTO `skola_paketi` (`destinacija_id`, `naziv`, `opis`, `cena_eur`, `jedi
 (1, 'Individualni čas',        '2h · Personalizovani program',       65, 'čas',   20),
 (1, '5-dnevni grupni kurs',    '2h dnevno · Sve uzraste · Sertifikat', 72, 'osobi', 30),
 (1, 'Snowboard starter',       '3h · Početnici · Oprema uključena',    48, 'osobi', 40);
+
+-- ============================================================================
+-- KRIT (id=2) — Letnja destinacija
+--   Iste tabele, isti format, samo drugi sadrzaj.
+--   `tip_klasa` na putanjama: 'morska-ruta', 'pesacka-laka', 'pesacka-zahtevna'
+--   CSS prepoznaje ove klase i automatski boji (dodaj nove blokove u stylu).
+-- ============================================================================
+
+INSERT INTO `destinacije_slike` (`destinacija_id`, `tip`, `url`, `alt`, `redosled`) VALUES
+(2, 'mapa_staza', 'https://images.unsplash.com/photo-1601581875309-fafbf2d3ed3a?q=80&w=1600&auto=format&fit=crop', 'Krit mapa', 1),
+(2, 'hero',       'https://images.unsplash.com/photo-1601581875309-fafbf2d3ed3a?q=80&w=1600&auto=format&fit=crop', 'Krit obala', 1),
+(2, 'gallery',    'https://images.unsplash.com/photo-1601581875309-fafbf2d3ed3a?q=80&w=1200&auto=format&fit=crop', 'Krit plaze',    1),
+(2, 'gallery',    'https://images.unsplash.com/photo-1533105079780-92b9be482077?q=80&w=1200&auto=format&fit=crop', 'Krit zalazak',  2),
+(2, 'gallery',    'https://images.unsplash.com/photo-1503152394-c571994fd383?q=80&w=1200&auto=format&fit=crop',   'Lefka Ori',     3);
+
+INSERT INTO `staze_putanje` (`destinacija_id`, `tip_klasa`, `naziv`, `svg_d_putanja`, `duzina_km`, `redosled`) VALUES
+(2, 'morska-ruta',     'Morska ruta — Balos laguna',  'M 80 200 Q 200 120 380 180 Q 500 230 580 200', 22.0, 1),
+(2, 'pesacka-laka',    'Pesacka — Samaria klanac',    'M 150 80 L 200 160 Q 260 200 320 250',          11.5, 2),
+(2, 'pesacka-zahtevna','Pesacka — Lefka Ori vrh',     'M 320 80 Q 380 130 420 220 L 460 290',           7.8, 3);
+
+INSERT INTO `transport_opcije` (`destinacija_id`, `tip`, `naziv`, `podnaslov`, `ikona`, `stavke_json`, `redosled`) VALUES
+(2, 'avion', 'Direktan let', 'Najbrza opcija', 'avion',
+    JSON_ARRAY(
+        JSON_OBJECT('label', 'Aerodrom',       'vrednost', 'BEG - Heraklion'),
+        JSON_OBJECT('label', 'Let',            'vrednost', '~2h 15min'),
+        JSON_OBJECT('label', 'Transfer hotel', 'vrednost', '~40 min'),
+        JSON_OBJECT('label', 'Frekvencija',    'vrednost', 'Sezonski, 4x nedeljno'),
+        JSON_OBJECT('label', 'Cena karte',     'vrednost', 'od 220 EUR / osobi')
+    ), 10),
+(2, 'bus', 'Bus + trajekt', 'Pavle / Patras / Heraklion', 'bus',
+    JSON_ARRAY(
+        JSON_OBJECT('label', 'Polazak',  'vrednost', 'Sava Centar'),
+        JSON_OBJECT('label', 'Trajanje', 'vrednost', '~30h sa trajektom'),
+        JSON_OBJECT('label', 'Trajekt',  'vrednost', 'Patras - Heraklion'),
+        JSON_OBJECT('label', 'Cena',     'vrednost', '180 EUR / osobi')
+    ), 20),
+(2, 'auto', 'Auto + trajekt', 'Najfleksibilnija opcija', 'auto',
+    JSON_ARRAY(
+        JSON_OBJECT('label', 'Granicni prelaz', 'vrednost', 'Preševo'),
+        JSON_OBJECT('label', 'Distanca',        'vrednost', '~2200 km do Patrasa'),
+        JSON_OBJECT('label', 'Trajekt',         'vrednost', 'Patras - Heraklion (~9h)'),
+        JSON_OBJECT('label', 'Putarina',        'vrednost', '85 EUR jedan smer')
+    ), 30);
+
+INSERT INTO `oprema_paketi` (`destinacija_id`, `naziv`, `opis`, `cena_eur`, `includes_json`, `redosled`) VALUES
+(2, 'Snorkel paket',
+    'Osnovni komplet za istrazivanje plicaka i koralnih grebena.',
+    12,
+    JSON_ARRAY('Maska sa silikonskom oblogom', 'Disaljka', 'Peraja', 'Vodootporna torba'),
+    10),
+(2, 'Ronilacki paket',
+    'Pun komplet za sertifikovane ronioce — Padi licenca obavezna.',
+    45,
+    JSON_ARRAY('Boce (2x12L)', 'Regulator', 'Kompenzator plovnosti', 'Wetsuit 3mm', 'Kompjuter za ronjenje'),
+    20);
+
+INSERT INTO `skola_paketi` (`destinacija_id`, `naziv`, `opis`, `cena_eur`, `jedinica`, `redosled`) VALUES
+(2, 'Pocetni kurs ronjenja',   '3 dana · Padi Open Water Diver', 320, 'osobi', 10),
+(2, 'Skola kajtanja',           '4h · Pocetni nivo, oprema ukljucena', 95, 'osobi', 20),
+(2, 'Privatni cas jedrenja',    '3h · Mali brod sa kapetanom',         140, 'cas',   30),
+(2, 'Vodjeni snorkel obilazak', '2h · Grupa do 8 osoba',                28, 'osobi', 40);
 
 -- ============================================================================
 -- KRAJ — pokreni u phpMyAdmin nad bazom `peak_palm`

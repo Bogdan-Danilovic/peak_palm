@@ -26,7 +26,34 @@ try {
 }
 
 /**
- * Napomena: Ovaj fajl ćemo uključivati u svaki drugi PHP fajl 
+ * Napomena: Ovaj fajl ćemo uključivati u svaki drugi PHP fajl
  * kojem trebaju podaci iz baze koristeći: include 'db.php';
  */
+
+/**
+ * get_season()
+ * --------------------------------------------------------------
+ * Vraca trenutnu sezonu iz URL parametra `?sezona=leto`.
+ * Ako nije postavljena ili je neispravna vrednost — vraca 'zima' (default).
+ *
+ * Koristi se u svakoj stranici (index.php, destinacija.php) i u
+ * partials/head.php (za data-season atribut na <html> sto okida CSS temu).
+ */
+function get_season(): string {
+    $valid = ['zima', 'leto'];
+    if (isset($_GET['sezona']) && in_array($_GET['sezona'], $valid, true)) {
+        return $_GET['sezona'];
+    }
+    return 'zima';
+}
+
+/**
+ * sezona_link($putanja, $sezona)
+ * Sastavi URL sa preserve-ovanom sezonom (?sezona=leto se prenosi).
+ * Pomocna funkcija za linkove na destinacije.
+ */
+function sezona_link(string $putanja, string $sezona): string {
+    $sep = strpos($putanja, '?') === false ? '?' : '&';
+    return $putanja . $sep . 'sezona=' . urlencode($sezona);
+}
 ?>
