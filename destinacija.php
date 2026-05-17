@@ -16,6 +16,41 @@
 require_once 'db.php';
 
 /* ============================================================
+   POMOĆNA FUNKCIJA — vraća inline SVG ikonu za tip transporta.
+   Ako kasnije dodaš nov tip (npr. 'brod'), samo ovde dodaj case.
+   ============================================================ */
+function svg_ikona_transport(string $tip): string {
+    switch ($tip) {
+        case 'bus':
+            return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
+                        <rect x="4" y="4" width="16" height="13" rx="2"/>
+                        <line x1="4" y1="11" x2="20" y2="11"/>
+                        <circle cx="8" cy="19" r="1.4"/>
+                        <circle cx="16" cy="19" r="1.4"/>
+                        <line x1="8" y1="7" x2="8" y2="9"/>
+                        <line x1="16" y1="7" x2="16" y2="9"/>
+                    </svg>';
+        case 'avion':
+            return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
+                        <path d="M3 13l3 1.5L11 9l8.5-3.5a1.5 1.5 0 0 1 2 2L18 16l-5.5 5-1.5-3-3-1.5L3 13z"/>
+                    </svg>';
+        case 'auto':
+            return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
+                        <path d="M4 14l1.5-5a2 2 0 0 1 2-1.5h9a2 2 0 0 1 2 1.5L20 14"/>
+                        <rect x="3" y="14" width="18" height="5" rx="1.5"/>
+                        <circle cx="7.5" cy="19" r="1.4"/>
+                        <circle cx="16.5" cy="19" r="1.4"/>
+                    </svg>';
+        default:
+            return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="28" height="28">
+                        <circle cx="12" cy="12" r="9"/>
+                        <line x1="12" y1="8" x2="12" y2="13"/>
+                        <circle cx="12" cy="16" r="0.6" fill="currentColor"/>
+                    </svg>';
+    }
+}
+
+/* ============================================================
    1. ID iz URL-a + osnovni podaci (sa LEFT JOIN na granicni prelaz)
    ============================================================ */
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 1;
@@ -63,23 +98,29 @@ $mapa_staza_url = $slike['mapa_staza'][0]['url'] ?? null;
    4. STAZE PUTANJE — SVG element + lista za hover
    ============================================================ */
 $staze = fetchByDest($pdo,
-    "SELECT tip_klasa, naziv, svg_d_putanja FROM staze_putanje
+    "SELECT tip_klasa, naziv, svg_d_putanja, duzina_km FROM staze_putanje
      WHERE destinacija_id = ? ORDER BY redosled, id",
     $id
 );
 
-/* Grupisanje po tip_klasi za listu (jedan red po tipu, broji koliko ih ima) */
+/* Grupisanje po tip_klasi za listu — zbira duzine svih staza istog tipa. */
 $staze_po_tipu = [];
 foreach ($staze as $s) {
     $tip = $s['tip_klasa'];
     if (!isset($staze_po_tipu[$tip])) {
-        /* prvi put: zapamti reprezentativan naziv (npr. "Plava staza") */
         $staze_po_tipu[$tip] = [
-            'naziv_grupe' => $s['naziv'] ?? ucfirst($tip) . ' staza',
-            'broj'        => 0,
+            'naziv_grupe' => 'Staze',
+            'duzina'      => 0.0,
         ];
+        /* Prvi naziv kao reprezentativan za celu grupu: "Plave staze", "Crvene staze"... */
+        switch ($tip) {
+            case 'plava':  $staze_po_tipu[$tip]['naziv_grupe'] = 'Plave staze';  break;
+            case 'crvena': $staze_po_tipu[$tip]['naziv_grupe'] = 'Crvene staze'; break;
+            case 'crna':   $staze_po_tipu[$tip]['naziv_grupe'] = 'Crne staze';   break;
+            default:       $staze_po_tipu[$tip]['naziv_grupe'] = ucfirst($tip) . ' staze';
+        }
     }
-    $staze_po_tipu[$tip]['broj']++;
+    $staze_po_tipu[$tip]['duzina'] += (float)$s['duzina_km'];
 }
 
 /* ============================================================
@@ -187,7 +228,7 @@ include 'partials/head.php';
                         <span class="slope-name"><?php echo htmlspecialchars($info['naziv_grupe']); ?></span>
                     </div>
                     <strong class="slope-km <?php echo htmlspecialchars($tip); ?>">
-                        <?php echo (int)$info['broj']; ?>×
+                        <?php echo number_format($info['duzina'], 1, ',', ''); ?> km
                     </strong>
                 </div>
                 <?php endforeach; ?>
@@ -214,7 +255,7 @@ include 'partials/head.php';
                     <div class="transport-card <?php echo htmlspecialchars($t['tip']); ?> reveal">
                         <div class="transport-accent"></div>
                         <div class="transport-body">
-                            <div class="transport-icon-wrap"><?php echo $t['ikona']; ?></div>
+                            <div class="transport-icon-wrap"><?php echo svg_ikona_transport($t['tip']); ?></div>
                             <h3 class="transport-title"><?php echo htmlspecialchars($t['naziv']); ?></h3>
 
                             <?php if (!empty($t['podnaslov'])): ?>

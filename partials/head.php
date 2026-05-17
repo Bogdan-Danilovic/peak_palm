@@ -15,6 +15,19 @@
     <meta name="theme-color" content="#04060d">
     <title><?php echo htmlspecialchars($page_title ?? 'Peak & Palm'); ?></title>
 
+    <!-- Pre-paint script: postavi sezonu na <html> PRE nego sto se CSS primeni,
+         da nema "blica" iz zime u leto pri ucitavanju stranice. -->
+    <script>
+    (function(){
+        try {
+            var s = localStorage.getItem('peak_palm_season') || 'winter';
+            document.documentElement.setAttribute('data-season', s);
+        } catch(e) {
+            document.documentElement.setAttribute('data-season', 'winter');
+        }
+    })();
+    </script>
+
     <!-- Preconnect ubrzava Google Fonts za 100-300ms -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

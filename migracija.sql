@@ -78,6 +78,7 @@ CREATE TABLE `staze_putanje` (
     `tip_klasa`      VARCHAR(40)  NOT NULL,
     `naziv`          VARCHAR(100) DEFAULT NULL,
     `svg_d_putanja`  TEXT         NOT NULL,
+    `duzina_km`      DECIMAL(5,1) NOT NULL DEFAULT 0,
     `redosled`       SMALLINT     NOT NULL DEFAULT 0,
     KEY `idx_dest_tip` (`destinacija_id`, `tip_klasa`),
     CONSTRAINT `fk_putanje_destinacija`
@@ -186,34 +187,36 @@ INSERT INTO `destinacije_slike` (`destinacija_id`, `tip`, `url`, `alt`, `redosle
 
 -- SVG putanje staza
 -- `tip_klasa` ide direktno u HTML kao CSS klasa. CSS prepoznaje i boji.
-INSERT INTO `staze_putanje` (`destinacija_id`, `tip_klasa`, `naziv`, `svg_d_putanja`, `redosled`) VALUES
-(1, 'plava',  'Plava staza — La Cascade',     'M 200 150 Q 300 220 400 300', 1),
-(1, 'crvena', 'Crvena staza — Rouge Mélèzes', 'M306.5 123.5C295.3 123.9 292.167 118.667 292 116C295.5 110.5 294.5 111 289.5 103.5C297.1 100.7 303.5 97 305.5 90.5C330.3 92.5 330 90.5 330 84C340.5 74.5 341 74.5 333.5 68.5C335.9 60.1 327.833 58 324 58C319.5 58 317.403 63.6563 312 66.5C302.5 71.5 299.5 74 290.5 76C289.5 79 281.6 84.2 276 85C274 86.6667 268 92.5 268.5 101C265.5 104.5 262 104.7 256 107.5', 2),
-(1, 'crna',   'Crna staza — Pylône',          'M 320 80 L 310 180 L 290 290', 3);
+INSERT INTO `staze_putanje` (`destinacija_id`, `tip_klasa`, `naziv`, `svg_d_putanja`, `duzina_km`, `redosled`) VALUES
+(1, 'plava',  'Plava staza — La Cascade',     'M 200 150 Q 300 220 400 300',  8.5, 1),
+(1, 'crvena', 'Crvena staza — Rouge Mélèzes', 'M306.5 123.5C295.3 123.9 292.167 118.667 292 116C295.5 110.5 294.5 111 289.5 103.5C297.1 100.7 303.5 97 305.5 90.5C330.3 92.5 330 90.5 330 84C340.5 74.5 341 74.5 333.5 68.5C335.9 60.1 327.833 58 324 58C319.5 58 317.403 63.6563 312 66.5C302.5 71.5 299.5 74 290.5 76C289.5 79 281.6 84.2 276 85C274 86.6667 268 92.5 268.5 101C265.5 104.5 262 104.7 256 107.5', 12.3, 2),
+(1, 'crna',   'Crna staza — Pylône',          'M 320 80 L 310 180 L 290 290', 4.7, 3);
 
 -- Transport opcije (3 razlicita tipa, isti format)
+-- Ikone se renderuju kao inline SVG na frontu — `ikona` kolona cuva samo
+-- naziv tipa ('bus'/'avion'/'auto') za buducu fleksibilnost.
 INSERT INTO `transport_opcije` (`destinacija_id`, `tip`, `naziv`, `podnaslov`, `ikona`, `stavke_json`, `redosled`) VALUES
-(1, 'bus', 'Agencijski Autobus', 'Direktna linija', '🚌',
+(1, 'bus', 'Agencijski Autobus', 'Direktna linija', 'bus',
     JSON_ARRAY(
         JSON_OBJECT('label', 'Polazak',      'vrednost', 'Sava Centar, 22:00h'),
-        JSON_OBJECT('label', 'Trajanje',     'vrednost', '~20h vožnje'),
+        JSON_OBJECT('label', 'Trajanje',     'vrednost', '~20h voznje'),
         JSON_OBJECT('label', 'Povratak',     'vrednost', 'Nedeljom, 14:00h'),
         JSON_OBJECT('label', 'Prtljag',      'vrednost', 'Kofer + ski torba'),
-        JSON_OBJECT('label', 'Cena prevoza', 'vrednost', '€95 / osobi')
+        JSON_OBJECT('label', 'Cena prevoza', 'vrednost', '95 EUR / osobi')
     ), 10),
-(1, 'avion', 'Avion + Transfer', 'Najbrža opcija', '✈️',
+(1, 'avion', 'Avion + Transfer', 'Najbrza opcija', 'avion',
     JSON_ARRAY(
-        JSON_OBJECT('label', 'Aerodrom',           'vrednost', 'BEG → Lyon / Marseille'),
+        JSON_OBJECT('label', 'Aerodrom',           'vrednost', 'BEG - Lyon / Marseille'),
         JSON_OBJECT('label', 'Let',                'vrednost', '~2h 30min'),
-        JSON_OBJECT('label', 'Transfer',           'vrednost', 'Aerodrom → Hotel'),
+        JSON_OBJECT('label', 'Transfer',           'vrednost', 'Aerodrom - Hotel'),
         JSON_OBJECT('label', 'Trajanje transfera', 'vrednost', '~3h'),
-        JSON_OBJECT('label', 'Šatl cena',          'vrednost', '€55 / osobi')
+        JSON_OBJECT('label', 'Satl cena',          'vrednost', '55 EUR / osobi')
     ), 20),
-(1, 'auto', 'Sopstveni Auto', '1580 km od Beograda', '🚗',
+(1, 'auto', 'Sopstveni Auto', '1580 km od Beograda', 'auto',
     JSON_ARRAY(
-        JSON_OBJECT('label', 'Putarina',        'vrednost', '€110 povratno'),
+        JSON_OBJECT('label', 'Putarina',        'vrednost', '110 EUR povratno'),
         JSON_OBJECT('label', 'Zimska oprema',   'vrednost', 'Obavezna'),
-        JSON_OBJECT('label', 'Granični prelaz', 'vrednost', 'Horgoš')
+        JSON_OBJECT('label', 'Granicni prelaz', 'vrednost', 'Horgos')
     ), 30);
 
 -- Oprema paketi

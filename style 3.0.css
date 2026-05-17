@@ -21,8 +21,10 @@
     --text-secondary:#7a8a9e;
     --text-muted:    #3d4f65;
 
-    /* Akcent boje */
+    /* Akcent boje — definisane jednom, koriste se svuda preko var(--ice)
+       Theme switcher (Zima/Leto) prebacuje ove vrednosti odjednom. */
     --ice:           #00e5ff;
+    --ice-rgb:       0, 229, 255;
     --ice-soft:      rgba(0, 229, 255, 0.08);
     --ice-glow:      rgba(0, 229, 255, 0.18);
     --frost:         rgba(0, 229, 255, 0.04);
@@ -50,6 +52,27 @@
     --r-lg:  20px;
     --r-xl:  28px;
     --r-pill:100px;
+}
+
+/* ==========================================================================
+   THEME SWITCHER — Zima (default) vs Leto
+   Promenom data-season atributa na <html>, sve varijable se odjednom
+   prebacuju i citav UI menja boju, BEZ ijedne dodatne PHP/JS izmene
+   po komponenti. JS samo postavlja atribut na <html>.
+   ========================================================================== */
+[data-season="summer"] {
+    /* Topla narandzasta umesto plave/cyan */
+    --ice:           #f5a35a;
+    --ice-rgb:       245, 163, 90;
+    --ice-soft:      rgba(245, 163, 90, 0.08);
+    --ice-glow:      rgba(245, 163, 90, 0.18);
+    --frost:         rgba(245, 163, 90, 0.04);
+
+    --border-hover:  rgba(245, 163, 90, 0.40);
+
+    --shadow-hover:  0 28px 70px rgba(0, 0, 0, 0.65),
+                     0 0  50px rgba(245, 163, 90, 0.08);
+    --glow-ice:      0 0 30px rgba(245, 163, 90, 0.28);
 }
 
 /* --------------------------------------------------------------------------
@@ -291,6 +314,52 @@ nav > a span,
 .nav-links a.active::after,
 .nav-links a:hover::after {
     transform: scaleX(1);
+}
+
+/* --------------------------------------------------------------------------
+   5b. Season toggle (Zima / Leto)
+   --------------------------------------------------------------------------
+   Mali pill-shape switcher u navu. Klik prebacuje data-season na <html>
+   i ceo UI se trenutno menja preko CSS varijabli. Vidi blok na vrhu fajla.
+   -------------------------------------------------------------------------- */
+.season-toggle {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-card);
+    border-radius: var(--r-pill);
+    padding: 3px;
+    margin-left: 18px;
+    flex-shrink: 0;
+}
+
+.season-btn {
+    padding: 6px 14px;
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    border-radius: var(--r-pill);
+    cursor: pointer;
+    transition:
+        color 0.3s var(--ease-out),
+        background 0.4s var(--ease-out),
+        box-shadow 0.4s var(--ease-out);
+    white-space: nowrap;
+}
+
+.season-btn:hover {
+    color: var(--text-primary);
+}
+
+.season-btn.active {
+    background: var(--ice);
+    color: #03080f;
+    box-shadow: 0 4px 14px rgba(var(--ice-rgb), 0.35);
 }
 
 /* --------------------------------------------------------------------------
@@ -677,12 +746,13 @@ nav > a span,
 }
 
 .meta-item strong {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 1.45rem;
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.15rem;
     font-weight: 600;
+    letter-spacing: -0.01em;
     color: var(--ice);
     display: block;
-    line-height: 1;
+    line-height: 1.1;
     transition: all 0.4s;
 }
 
@@ -902,7 +972,11 @@ nav > a span,
    -------------------------------------------------------------------------- */
 @media (max-width: 640px) {
     nav,
-    nav.scrolled  { padding: 18px 22px; }
+    nav.scrolled  { padding: 18px 22px; flex-wrap: wrap; }
+
+    /* Na mobilnom: nav-links u sredini, season toggle ispod njih */
+    .season-toggle  { margin-left: 0; margin-top: 6px; }
+    .season-btn     { padding: 5px 10px; font-size: 0.58rem; }
 
     .container    { padding: 108px 18px 56px; }
 
@@ -2116,9 +2190,9 @@ nav > a span,
     filter: drop-shadow(0 0 6px currentColor);
 }
 
-.staza.plava  { stroke: #38bdf8; color: #38bdf8; }
-.staza.crvena { stroke: #ef4444; color: #ef4444; }
-.staza.crna   { stroke: #b8c8da; color: #b8c8da; }
+.staza.plava  { stroke: #2383ff; color: #2383ff; }
+.staza.crvena { stroke: #fa1a1a; color: #fa1a1a; }
+.staza.crna   { stroke: #000000; color: #000000; }
 
 /* Glavni sadrzaj koji startuje ispod viewporta */
 .scroll-content {
@@ -2140,10 +2214,21 @@ nav > a span,
 .section-block     { margin-bottom: var(--section-gap); }
 .section-block-top { margin-top:    var(--section-gap); }
 
-/* Hero — boje km za staze */
-.slope-km.blue  { color: #38bdf8; }
-.slope-km.red   { color: #ef4444; }
-.slope-km.black { color: #b8c8da; }
+/* Hero — duzine staza u bojama tipa (klase dolaze direktno iz baze) */
+.slope-km        {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+}
+.slope-km.plava  { color: #2383ff; }
+.slope-km.crvena { color: #fa1a1a; }
+.slope-km.crna   { color: #000000; text-shadow: 0 0 1px rgba(255,255,255,0.6), 0 1px 8px rgba(0,0,0,0.55); }
+
+/* Stare blue/red/black klase ostaju iz zaledja kompatibilnosti */
+.slope-km.blue   { color: #2383ff; }
+.slope-km.red    { color: #fa1a1a; }
+.slope-km.black  { color: #000000; }
 
 /* Live status panel — zicare i vidljivost */
 .zicara-label {
